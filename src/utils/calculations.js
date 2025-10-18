@@ -11,3 +11,16 @@ export const calculateMetrics = (ccbData, churchData) => {
     avgGivingPerPerson: avgGivingPerPerson.toFixed(2)
   };
 };
+
+function epochWeeks(inputDate) {
+  const baseDate = new Date(1970, 0, 4); // months are 0-indexed in JS
+  const date = inputDate instanceof Date ? inputDate : new Date(inputDate);
+
+  // Get difference in milliseconds
+  const diffMs = date - baseDate;
+
+  // Convert ms → days → weeks (floor to full weeks)
+  const weeks = Math.floor(diffMs / (1000 * 60 * 60 * 24 * 7));
+
+  return weeks;
+}

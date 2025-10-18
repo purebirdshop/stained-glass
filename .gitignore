@@ -1,5 +1,6 @@
-echo # IGNORE ME
+# IGNORE ME
 # Logs
+/src/_refs
 logs
 *.log
 npm-debug.log*

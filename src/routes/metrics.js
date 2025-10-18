@@ -8,16 +8,14 @@ const router = express.Router();
 router.get("/", async (req, res) => {
   try {
     const [ccbData, churchData] = await Promise.all([
-      fetchCCBData(),
+      // fetchCCBData(),
       fetchChurchMetricsData()
     ]);
 
-    const calculated = calculateMetrics(ccbData, churchData);
+    // const calculated = calculateMetrics(ccbData, churchData);
 
     res.json({
-      source: "combined",
-      timestamp: new Date(),
-      data: calculated
+      ccbData
     });
   } catch (err) {
     console.error(err);
