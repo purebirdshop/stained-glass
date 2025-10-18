@@ -2,6 +2,7 @@
 
 
 # Hierarchy
+```
 stained-glass/
 ├── src/
 │   ├── index.js             # main server
@@ -17,3 +18,4 @@ stained-glass/
 ├── .env
 ├── package.json
 └── README.md
+```
