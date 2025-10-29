@@ -1,10 +1,17 @@
 import express from "express";
 import { 
+  getCampus,
+  getCampuses,
   getServiceTimes, 
   getRecords, 
   getAllRecords,
   verifyUserByEmail
 } from "../services/churchService.js";
+import { 
+  fetchCampusProfile,
+  fetchCampusList
+} from "../services/ccbService.js";
+import mergeCampusLists from "../utils/mergeCampusLists.js"
 
 const router = express.Router();
 
@@ -132,5 +139,93 @@ router.get("/filtered-records", async (req, res) => {
     return res.status(500).json({ error: "[ metrics.js ] | Failed to fetch filtered records" });
   }
 });
+
+router.get("/metrics-campus", async (req, res) => {
+  let { id } = req.query;
+
+  if(!id){
+    console.log("[ metrics.js ] | Failed to fetch records, no campus ID provided.");
+  }
+
+  try {
+    // 5️⃣ Fetch records from CCB's API
+    const recordsData = await getCampus({
+      id
+    });
+
+    return res.json({
+      recordsData
+    });
+  } catch (err) {
+    console.error("[ metrics.js ] | Error fetching records from CCB's API:", err.message);
+    return res.status(500).json({ error: "[ metrics.js ] | Failed to fetch records from CCB Data." });
+  }
+});
+
+router.get("/ccb-campus", async (req, res) => {
+  let { id } = req.query;
+
+  if(!id){
+    console.log("[ metrics.js ] | Failed to fetch records, no campus ID provided.");
+  }
+
+  try {
+    // 5️⃣ Fetch records from CCB's API
+    const recordsData = await fetchCampusProfile({
+      id
+    });
+
+    return res.json({
+      recordsData
+    });
+  } catch (err) {
+    console.error("[ metrics.js ] | Error fetching records from CCB's API:", err.message);
+    return res.status(500).json({ error: "[ metrics.js ] | Failed to fetch records from CCB Data." });
+  }
+});
+
+router.get("/metrics-campus-list", async (req, res) => {
+  try {
+    // 5️⃣ Fetch records from CCB's API
+    const recordsData = await getCampuses();
+
+    return res.json(recordsData);
+  } catch (err) {
+    console.error("[ metrics.js ] | Error fetching records from CCB's API:", err.message);
+    return res.status(500).json({ error: "[ metrics.js ] | Failed to fetch records from CCB Data." });
+  }
+});
+
+router.get("/ccb-campus-list", async (req, res) => {
+  try {
+    // 5️⃣ Fetch records from CCB's API
+    const recordsData = await fetchCampusList();
+
+    return res.json(recordsData);
+  } catch (err) {
+    console.error("[ metrics.js ] | Error fetching records from CCB's API:", err.message);
+    return res.status(500).json({ error: "[ metrics.js ] | Failed to fetch records from CCB Data." });
+  }
+});
+
+router.get("/all-campus-data", async (req, res) => {
+  try {
+    // 5️⃣ Fetch records from CCB's API
+    const metricsResponse = await getCampuses();
+    const ccbResponse = await fetchCampusList();
+    const metrics = metricsResponse; 
+    const ccb = ccbResponse?.ccb_api.response.campuses.campus; 
+
+    const recordsData = mergeCampusLists( metrics,ccb )
+    return res.json({
+      records: recordsData
+    });
+  } catch (err) {
+    console.error("[ metrics.js ] | Error fetching records from CCB's API:", err.message);
+    return res.status(500).json({ error: "[ metrics.js ] | Failed to fetch records from CCB Data." });
+  }
+});
+
+
 
 export default router;

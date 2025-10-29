@@ -1,4 +1,6 @@
-[
+import categoryGroups from "./categoryGroups";
+
+categoryIds = [
     302229,
     302227,
     306757,
@@ -13,3 +15,5 @@
     302233,
     679252 
 ]
+
+export default categoryIds

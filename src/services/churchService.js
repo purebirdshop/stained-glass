@@ -1,7 +1,7 @@
 import axios from "axios";
 import { getCache, setCache } from "./cacheService.js";
-import { getCacheKey, epochWeeks } from "../utils/helpers.js";
-import categoryGroups from "../data/categoryGroups.json" assert { type: "json" };
+import { getMetricsCacheKey, epochWeeks } from "../utils/helpers.js";
+import categoryGroups from '../data/categoryGroups.js';
 
 
 let categoryIds = [];
@@ -43,8 +43,68 @@ export const verifyUserByEmail = async (email) => {
   }
 };
 
+export const getCampus = async (options = {}) => {
+  const cacheKey = getMetricsCacheKey(options);
+  const cached = getCache(cacheKey);
+  if (cached) return cached;
+
+  const params = { campus_id:options.id };
+
+  try {
+    const response = await axios.get(
+      `https://churchmetrics.com/api/v1/campuses/${options.id}.json`,
+      {
+        headers: {
+          "X-Auth-User": process.env.CHURCH_METRICS_USERNAME,
+          "X-Auth-Key": process.env.CHURCH_METRICS_KEY,
+          Accept: "application/json",
+        }
+      }
+    );
+
+    // Raw array returned by API
+    let records = response.data;
+
+    setCache(cacheKey, records);
+
+    return records;
+  } catch (err) {
+    console.error("[ churchServices.js ] | Error fetching Church Metrics records:", err.response?.status, err.response?.data);
+    throw err;
+  }
+};
+
+export const getCampuses = async (options = {}) => {
+  const cacheKey = getMetricsCacheKey(options);
+  const cached = getCache(cacheKey);
+  if (cached) return cached;
+
+  try {
+    const response = await axios.get(
+      "https://churchmetrics.com/api/v1/campuses.json",
+      {
+        headers: {
+          "X-Auth-User": process.env.CHURCH_METRICS_USERNAME,
+          "X-Auth-Key": process.env.CHURCH_METRICS_KEY,
+          Accept: "application/json",
+        }
+      }
+    );
+
+    // Raw array returned by API
+    let records = response.data;
+
+    setCache(cacheKey, records);
+
+    return records;
+  } catch (err) {
+    console.error("[ churchServices.js ] | Error fetching Church Metrics records:", err.response?.status, err.response?.data);
+    throw err;
+  }
+};
+
 export const getAllRecords = async (options = {}) => {
-  const cacheKey = "church_metrics_records";
+  const cacheKey = getMetricsCacheKey(options);
   const cached = getCache(cacheKey);
   if (cached) return cached;
 
@@ -105,7 +165,7 @@ export const getServiceTimes = async () => {
 }
 
 export const getRecords = async (options = {}) => {
-  const cacheKey = getCacheKey(options);
+  const cacheKey = getMetricsCacheKey(options);
   const cached = getCache(cacheKey);
   if (cached) return cached;
 
@@ -128,112 +188,64 @@ export const getRecords = async (options = {}) => {
 
     // Hard-coded list of category IDs
     if(typeof options.category_id !== 'undefined') {
-      categoryIds = options.category_id.split(",").map(Number) 
+      categoryIds = 
+        {
+          "url-request":options.category_id.split(",").map(Number)
+        };
     } else {
-      categoryIds = [
-        302229,
-        302227,
-        306757,
-        302225,
-        304721,
-        304720,
-        652218,
-        648461,
-        391753,
-        644934,
-        633276,
-        302233,
-        679252 
-      ]
+      categoryIds = categoryGroups;
     }
 
 // Prepare the result container
-const categoryTotals = {};
+const results = {};
 
-// If you want start/end *dates* as ISO strings instead of week numbers,
-// you can compute them from your date param earlier; here we keep week values.
-// (weeks[0] is first week_reference, weeks[weeks.length-1] is last)
+for (const [groupName, categoryIds] of Object.entries(categoryGroups)) {
+  let groupTotal = 0; // sum of all category values in this group
+  const categoryTotals = {}; // individual totals for each category in group
 
-for (const category_id of categoryIds) {
-  let totalValue = 0;
-  let categoryName = null;
-  let startWeekValue = null; // value for first week found
-  let endWeekValue = null;   // value for last week found
+  for (let category_id of categoryIds) {
+    let categoryTotal = 0;
 
-  // Loop weeks in order so start/end assignment is straightforward
-  for (let i = 0; i < weeks.length; i++) {
-    const week = weeks[i];
-    const params = { week_reference: week, category_id };
+    for (let week of weeks) {
+      const params = { week_reference: week, category_id };
 
-    const response = await axios.get(
-      "https://churchmetrics.com/api/v1/records.json",
-      {
-        headers: {
-          "X-Auth-User": process.env.CHURCH_METRICS_USERNAME,
-          "X-Auth-Key": process.env.CHURCH_METRICS_KEY,
-          Accept: "application/json",
-        },
-        params,
-      }
-    );
+      const response = await axios.get(
+        "https://churchmetrics.com/api/v1/records.json",
+        {
+          headers: {
+            "X-Auth-User": process.env.CHURCH_METRICS_USERNAME,
+            "X-Auth-Key": process.env.CHURCH_METRICS_KEY,
+            Accept: "application/json",
+          },
+          params,
+        }
+      );
 
-    // normalize response to array
-    const recordsThisWeek = Array.isArray(response.data) ? response.data : (Array.isArray(response.data.records) ? response.data.records : []);
+      // Optionally filter by service_time_ids
+      const weekRecords = options.service_time_ids?.length
+        ? response.data.filter(r => options.service_time_ids.includes(r.service_time_id))
+        : response.data;
 
-    // filter to only the desired service_time_ids (if provided)
-    const filteredByServiceTime = options.service_time_ids?.length
-      ? recordsThisWeek.filter(r => options.service_time_ids.includes(r.service_time_id))
-      : recordsThisWeek;
-
-    // Sum values for this week and capture categoryName (first found)
-    let weekSum = 0;
-    for (const rec of filteredByServiceTime) {
-      // defensive: ensure numeric value
-      const val = typeof rec.value === "number" ? rec.value : Number(rec.value) || 0;
-      weekSum += val;
-
-      if (!categoryName && rec.category && rec.category.Name) {
-        categoryName = rec.category.Name;
-      }
+      // Sum up the `value` key for this week + category
+      const weekSum = weekRecords.reduce((sum, r) => sum + (r.value || 0), 0);
+      categoryTotal += weekSum;
     }
 
-    // add this week's sum to category total
-    totalValue += weekSum;
-
-    // set startWeekValue if this is the first week where we found data
-    if (startWeekValue === null && weekSum !== 0) {
-      startWeekValue = weekSum;
-    }
-
-    // always update endWeekValue if this week had any data (so last non-empty week)
-    if (weekSum !== 0) {
-      endWeekValue = weekSum;
-    }
+    categoryTotals[category_id] = categoryTotal;
+    groupTotal += categoryTotal;
   }
 
-  // Build summary for this category
-  const summary = {
-    startDateRef: weeks[0],
-    endDateRef: weeks[weeks.length - 1],
-    categoryName: categoryName || null,
-    startValue: startWeekValue !== null ? startWeekValue : 0,
-    endValue: endWeekValue !== null ? endWeekValue : 0,
-    total: totalValue
+  // Store results for this group
+  results[groupName] = {
+    startDate: weeks[0],
+    endDate: weeks[weeks.length - 1],
+    total: groupTotal,
+    categories: categoryTotals,
   };
-
-  // optional 'calculated' flag: compute average per-week if requested
-  if (options.calculated) {
-    const denom = weeks.length || 1;
-    summary.average = +(totalValue / denom).toFixed(2); // rounded to 2 decimals
-  }
-
-  categoryTotals[category_id] = summary;
 }
 
-// categoryTotals now holds the object you requested
-
-setCache(cacheKey, categoryTotals);
-return categoryTotals;
+setCache(cacheKey, results);
+return results;
   } catch (err) {
     console.error(
       "[ churchServices.js ] | Error fetching Church Metrics records:",

@@ -1,4 +1,4 @@
-const formatTimeOfDay = (timeStr) => {
+function formatTimeOfDay(timeStr){
   // Ensure string, zero-pad hour/minute
   const str = timeStr.toString();
   const hour = str.slice(0, 2);
@@ -7,7 +7,7 @@ const formatTimeOfDay = (timeStr) => {
   return `2000-01-01T${hour}:${minute}:00.000Z`;
 };
 
-const calculateMetrics = (ccbData, churchData) => {
+function calculateMetrics(ccbData, churchData){
   // Example: combine attendance + giving totals
   const attendance = churchData.total_attendance || 0;
   const giving = ccbData?.response?.giving?.total || 0;
@@ -21,7 +21,7 @@ const calculateMetrics = (ccbData, churchData) => {
   };
 };
 
-const epochWeeks = (inputDate) => {
+function epochWeeks(inputDate){
   const baseDate = new Date(1970, 0, 4); // Jan 4, 1970
   const date = inputDate instanceof Date ? inputDate : new Date(inputDate);
   const diffMs = date - baseDate;
@@ -30,9 +30,10 @@ const epochWeeks = (inputDate) => {
   return finalDate
 };
 
-function getCacheKey(options = {}) {
+function getMetricsCacheKey(options = {}) {
   const parts = [];
 
+  if (options.id) parts.push(`id=${options.id}`);
   if (options.date) parts.push(`date=${options.date}`);
   if (options.week_reference) parts.push(`week=${options.week_reference}`);
   if (options.service_time_ids?.length) parts.push(`service_time_ids=${options.service_time_ids.join(",")}`);
@@ -50,4 +51,27 @@ function getCacheKey(options = {}) {
   return `church_metrics_records_${parts.join("_")}`;
 }
 
-export { formatTimeOfDay, getCacheKey, calculateMetrics, epochWeeks };
+
+function getCcbCacheKey(options = {}) {
+  const parts = [];
+
+  if (options.id) parts.push(`id=${options.id}`);
+  if (options.date) parts.push(`date=${options.date}`);
+  if (options.week_reference) parts.push(`week=${options.week_reference}`);
+  if (options.service_time_ids?.length) parts.push(`service_time_ids=${options.service_time_ids.join(",")}`);
+
+  // Handle category_id (array or single value)
+  if (options.category_id) {
+    const categories = Array.isArray(options.category_id)
+      ? options.category_id
+      : options.category_id.toString().split(",").map(Number);
+
+    const sortedCats = categories.map(String).sort(); // ensure consistent string format
+    parts.push(`category=${sortedCats.join(",")}`);
+  }
+
+  return `ccb_church_records_${parts.join("_")}`;
+}
+
+
+export { formatTimeOfDay, getMetricsCacheKey, getCcbCacheKey, calculateMetrics, epochWeeks };

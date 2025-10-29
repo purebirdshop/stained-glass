@@ -1,4 +1,4 @@
-{
+const categoryGroups = {
  "adults":[302229],
  "kids":[302227,306757,302225],
  "junior-high":[304721,304720],
@@ -7,3 +7,5 @@
  "unique-dna":[633276,302233],
  "assigned-volunteers":[679252]
 }
+
+export default categoryGroups;
