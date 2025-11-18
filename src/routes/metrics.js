@@ -5,7 +5,10 @@ import {
   getServiceTimes, 
   getRecords, 
   getAllRecords,
-  verifyUserByEmail
+  verifyCmUserByEmail,
+  getAllRecordsByCampus,
+  getAllRecordsByCampusByCategory,
+  getAllRecordsByCampusGrouped,
 } from "../services/churchService.js";
 import { 
   fetchCampusProfile,
@@ -50,7 +53,82 @@ router.get("/all-records", async (req, res) => {
   }
 });
 
-// GET /api/metrics/verify-user?email=user@example.com
+router.get("/all-records-by-campus", async (req, res) => {
+  try {
+    const { campus_id } = req.query;
+
+    if (!campus_id) {
+      return res.status(400).json({ error: "Missing 'campus_id' query param" });
+    }
+
+    // 5️⃣ Fetch records for the given month / date and service_time_ids
+    const recordsData = await getAllRecordsByCampus({
+      campus_id
+    });
+
+    // 6️⃣ Return service times and filtered records
+    return res.json({
+      records: recordsData
+    });
+  } catch (err) {
+    console.error("[ metrics.js ] | Error fetching filtered records:", err.message);
+    return res.status(500).json({ error: "[ metrics.js ] | Failed to fetch filtered records" });
+  }
+});
+
+router.get("/all-records-by-campus-grouped", async (req, res) => {
+  try {
+    const { campus_id, startDate, endDate } = req.query;
+
+    if (!campus_id) {
+      return res.status(400).json({ error: "Missing 'campus_id' query param" });
+    }
+
+    // 5️⃣ Fetch records for the given month / date range
+    const records = await getAllRecordsByCampusGrouped({
+      campus_id,
+      start_date: startDate,
+      end_date: endDate
+    });
+
+    // 6️⃣ Return records
+    return res.json({ records });
+  } catch (err) {
+    console.error(
+      "[ metrics.js ] | Error fetching filtered records:",
+      err.message
+    );
+    return res
+      .status(500)
+      .json({ error: "[ metrics.js ] | Failed to fetch filtered records" });
+  }
+});
+
+router.get("/all-records-by-campus-by-category", async (req, res) => {
+  try {
+    const { campus_id } = req.query;
+
+    if (!campus_id) {
+      return res.status(400).json({ error: "Missing 'campus_id' query param" });
+    }
+
+    // id = campus_id.campus_id;
+
+    // 5️⃣ Fetch records for the given month / date and service_time_ids
+    const recordsData = await getAllRecordsByCampusByCategory({
+      campus_id,
+    });
+
+    // 6️⃣ Return service times and filtered records
+    return res.json({
+      records: recordsData
+    });
+  } catch (err) {
+    console.error("[ metrics.js ] | Error fetching filtered records:", err.message);
+    return res.status(500).json({ error: "[ metrics.js ] | Failed to fetch filtered records" });
+  }
+});
+
 router.get("/verify-user", async (req, res) => {
   try {
     const { email } = req.query;
@@ -59,7 +137,7 @@ router.get("/verify-user", async (req, res) => {
       return res.status(400).json({ error: "Missing 'email' query parameter" });
     }
 
-    const userData = await verifyUserByEmail(email);
+    const userData = await verifyCmUserByEmail(email);
 
     if (!userData) {
       return res.status(404).json({ error: `No user found for email: ${email}` });
@@ -67,9 +145,6 @@ router.get("/verify-user", async (req, res) => {
 
     // ✅ Store user in session
     req.session.churchUser = userData;
-
-    console.log(`🏅 User successfully verified.`);
-    console.log(userData);
 
     return res.json({
       message: "🏅 User successfully verified.",
@@ -218,7 +293,7 @@ router.get("/all-campus-data", async (req, res) => {
 
     const recordsData = mergeCampusLists( metrics,ccb )
     return res.json({
-      records: recordsData
+      data:recordsData
     });
   } catch (err) {
     console.error("[ metrics.js ] | Error fetching records from CCB's API:", err.message);

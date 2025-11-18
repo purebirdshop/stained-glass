@@ -72,6 +72,13 @@ function getCcbCacheKey(options = {}) {
 
   return `ccb_church_records_${parts.join("_")}`;
 }
+const calculateTotal = (recordsArray) => {
+  
+  if (!Array.isArray(recordsArray) || recordsArray.length === 0) return 0;
+  return recordsArray.reduce((sum, record) => sum + (record.value || 0), 0);
+};
 
 
-export { formatTimeOfDay, getMetricsCacheKey, getCcbCacheKey, calculateMetrics, epochWeeks };
+
+
+export { calculateTotal, formatTimeOfDay, getMetricsCacheKey, getCcbCacheKey, calculateMetrics, epochWeeks };

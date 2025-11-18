@@ -3,6 +3,7 @@ import session from "express-session";
 import dotenv from "dotenv";
 import cors from "cors"; // <--- import cors
 import metricsRouter from "./routes/metrics.js";
+import connectionRouter from "./routes/connection.js";
 
 dotenv.config();
 const app = express();
@@ -37,9 +38,10 @@ app.use(express.json());
 
 // --- Routes ---
 app.use("/api/metrics", metricsRouter);
+app.use("/api/connection", connectionRouter);
 
 app.get("/", (req, res) => {
-  res.send("Middleware running 🤝 Use /api/metrics to fetch Church Metrics data.");
+  res.send("Middleware running 🤝 use /api/metrics to view the stained glass.");
 });
 
 app.listen(PORT, () =>
