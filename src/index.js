@@ -27,7 +27,11 @@ app.use(
 // --- 🛡 CORS Middleware ---
 app.use(
   cors({
-    origin: ["http://localhost:5173"],
+    origin: [
+      "http://localhost:5173",
+      "https://viewapse.com",
+      "https://www.viewapse.com",
+    ],
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true, // allow cookies to be sent
   })
