@@ -59,7 +59,10 @@ const whitelist = [
 	"natalie@awakenchurch.com",
 	"marco@awakenchurch.com",
 	"ashly@awakenchurch.com",
-	"jasontylerb@gmail.com"
+	"jolene@awakenchurch.com",
+	"jasontylerb@gmail.com",
+	"tester@purebirdshop.com",
+	"jason@purebirdshop.com"
 ]
 
 export default whitelist;
