@@ -229,9 +229,6 @@ export const getAllRecordsByCampusByCategory_ORIG = async (options = {}) => {
 
     } else {
       for (const record of records) {
-
-        // console.log(`record: `)
-        // console.log(record.category.name)
         catName = record.category.name;
         total += record.value || 0;         // sum up all values
         if (record?.service_time_id) {
@@ -364,7 +361,8 @@ export const getAllRecordsByCampusByCategory = async (options = {}) => {
   }
 };
 
-export const getAllRecordsByCampusGrouped = async (campus_id, start_date, end_date) => {
+export const getAllRecordsByCampusGrouped = async (options = {}) => {
+  const { campus_id, start_date, end_date } = options;
   if (!campus_id) throw new Error("Campus ID is required.");
 
   const groupedResults = {};
@@ -383,7 +381,6 @@ export const getAllRecordsByCampusGrouped = async (campus_id, start_date, end_da
     : new Date(now.getFullYear(), now.getMonth() + 1, 0); // last day of month
 
   // Loop through each week (or any interval you want)
-  // For now, we'll assume you want to loop by week_reference like before
   const weekRefs = [];
   let current = new Date(startDate);
   while (current <= endDate) {

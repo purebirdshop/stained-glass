@@ -10,9 +10,15 @@ import {
   getAllRecordsByCampusByCategory,
   getAllRecordsByCampusGrouped,
 } from "../services/churchService.js";
-import { 
+import {
+  fetchSingleAttendanceProfile,
+  fetchAllAttendanceProfiles,
+  fetchAllEventsProfiles,
   fetchCampusProfile,
-  fetchCampusList
+  fetchCampusList,
+  fetchAllGroupProfiles,
+  fetchAllGroupGroupings,
+  fetchAllGroupsBySearch,
 } from "../services/ccbService.js";
 import mergeCampusLists from "../utils/mergeCampusLists.js"
 
@@ -79,7 +85,6 @@ router.get("/all-records-by-campus", async (req, res) => {
 router.get("/all-records-by-campus-grouped", async (req, res) => {
   try {
     const { campus_id, startDate, endDate } = req.query;
-
     if (!campus_id) {
       return res.status(400).json({ error: "Missing 'campus_id' query param" });
     }
@@ -157,7 +162,6 @@ router.get("/verify-user", async (req, res) => {
   }
 });
 
-// GET /api/metrics/filtered-records?campus_id=65637&date=YYYY-MM-DD&time=830
 router.get("/filtered-records", async (req, res) => {
   const sessionUser = req.session?.churchUser;
   
@@ -238,16 +242,16 @@ router.get("/metrics-campus", async (req, res) => {
 });
 
 router.get("/ccb-campus", async (req, res) => {
-  let { id } = req.query;
+  let { campus } = req.query;
 
-  if(!id){
+  if(!campus){
     console.log("[ metrics.js ] | Failed to fetch records, no campus ID provided.");
   }
 
   try {
     // 5️⃣ Fetch records from CCB's API
     const recordsData = await fetchCampusProfile({
-      id
+      campus
     });
 
     return res.json({
@@ -271,10 +275,47 @@ router.get("/metrics-campus-list", async (req, res) => {
   }
 });
 
+router.get("/ccb-single-attendance-profile", async (req, res) => {
+  const { event,start_date } = req.query;
+  try {
+    const recordsData = await fetchSingleAttendanceProfile({ event,start_date });
+
+    return res.json(recordsData);
+  } catch (err) {
+    console.error("[ metrics.js ] | Error fetching records from CCB's API:", err.message);
+    return res.status(500).json({ error: "[ metrics.js ] | Failed to fetch records from CCB Data." });
+  }
+});
+
+router.get("/ccb-attendance-profiles", async (req, res) => {
+  const { start_date, end_date } = req.query;
+  try {
+    const recordsData = await fetchAllAttendanceProfiles({ start_date, end_date });
+
+    return res.json(recordsData);
+  } catch (err) {
+    console.error("[ metrics.js ] | Error fetching records from CCB's API:", err.message);
+    return res.status(500).json({ error: "[ metrics.js ] | Failed to fetch records from CCB Data." });
+  }
+});
+
 router.get("/ccb-campus-list", async (req, res) => {
   try {
     // 5️⃣ Fetch records from CCB's API
     const recordsData = await fetchCampusList();
+
+    return res.json(recordsData);
+  } catch (err) {
+    console.error("[ metrics.js ] | Error fetching records from CCB's API:", err.message);
+    return res.status(500).json({ error: "[ metrics.js ] | Failed to fetch records from CCB Data." });
+  }
+});
+
+router.get("/ccb-campus-profile", async (req, res) => {
+  const { campus } = req.query;
+
+  try {
+    const recordsData = await fetchCampusProfile({ campus });
 
     return res.json(recordsData);
   } catch (err) {
@@ -295,6 +336,122 @@ router.get("/all-campus-data", async (req, res) => {
     return res.json({
       data:recordsData
     });
+  } catch (err) {
+    console.error("[ metrics.js ] | Error fetching records from CCB's API:", err.message);
+    return res.status(500).json({ error: "[ metrics.js ] | Failed to fetch records from CCB Data." });
+  }
+});
+
+router.get("/ccb-all-events-list", async (req, res) => {
+  const {
+    start_date,
+    page,
+    per_page,
+    include_guest_list,
+    include_image_link
+  } = req.query;
+
+  if (!start_date) {
+    return res.status(400).json({ error: "Missing 'start_date' query param" });
+  }
+
+  try {
+    // 5️⃣ Fetch records from CCB's API
+    const recordsData = await fetchAllEventsProfiles({
+      start_date,
+      page,
+      per_page,
+      include_guest_list,
+      include_image_link
+    });
+
+    return res.json(recordsData);
+  } catch (err) {
+    console.error("[ metrics.js ] | Error fetching records from CCB's API:", err.message);
+    return res.status(500).json({ error: "[ metrics.js ] | Failed to fetch records from CCB Data." });
+  }
+});
+
+router.get("/ccb-all-groups-list", async (req, res) => {
+  const {
+    start_date,
+    page,
+    per_page,
+    include_participants
+  } = req.query;
+
+
+  try {
+    // 5️⃣ Fetch records from CCB's API
+    const recordsData = await fetchAllGroupProfiles({
+      start_date,
+      page,
+      per_page,
+      include_participants:false
+    });
+
+    return res.json(recordsData);
+  } catch (err) {
+    console.error("[ metrics.js ] | Error fetching records from CCB's API:", err.message);
+    return res.status(500).json({ error: "[ metrics.js ] | Failed to fetch records from CCB Data." });
+  }
+});
+
+router.get("/ccb-all-groups-list-detailed", async (req, res) => {
+  const {
+    start_date,
+    page,
+    per_page,
+    include_participants
+  } = req.query;
+
+
+  try {
+    // 5️⃣ Fetch records from CCB's API
+    const recordsData = await fetchAllGroupProfiles({
+      start_date,
+      page,
+      per_page,
+      include_participants:true
+    });
+
+    return res.json(recordsData);
+  } catch (err) {
+    console.error("[ metrics.js ] | Error fetching records from CCB's API:", err.message);
+    return res.status(500).json({ error: "[ metrics.js ] | Failed to fetch records from CCB Data." });
+  }
+});
+
+router.get("/ccb-group-groupings", async (req, res) => {
+  const {
+    id
+  } = req.query;
+
+  try {
+    // 5️⃣ Fetch records from CCB's API
+    const recordsData = await fetchAllGroupGroupings({
+      id
+    });
+
+    return res.json(recordsData);
+  } catch (err) {
+    console.error("[ metrics.js ] | Error fetching records from CCB's API:", err.message);
+    return res.status(500).json({ error: "[ metrics.js ] | Failed to fetch records from CCB Data." });
+  }
+});
+
+router.get("/ccb-group-by-search", async (req, res) => {
+  const {
+    id
+  } = req.query;
+
+  try {
+    // 5️⃣ Fetch records from CCB's API
+    const recordsData = await fetchAllGroupsBySearch({
+      id
+    });
+
+    return res.json(recordsData);
   } catch (err) {
     console.error("[ metrics.js ] | Error fetching records from CCB's API:", err.message);
     return res.status(500).json({ error: "[ metrics.js ] | Failed to fetch records from CCB Data." });
