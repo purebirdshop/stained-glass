@@ -159,8 +159,6 @@ const { campus_id, category_id } = options;
   // const cached = getCache(cacheKey);
   // if (cached) return cached;
 
-  console.log(`campus_id: ${ campus_id }`)
-    console.log(`category_id: ${ category_id }`)
   if (!campus_id) throw new Error("Campus ID is required.");
 
   // Calculate first and last day of the current month
