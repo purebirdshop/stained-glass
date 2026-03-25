@@ -21,14 +21,19 @@ function calculateMetrics(ccbData, churchData){
   };
 };
 
-function epochWeeks(inputDate){
-  const baseDate = new Date(1970, 0, 4); // Jan 4, 1970
-  const date = inputDate instanceof Date ? inputDate : new Date(inputDate);
-  const diffMs = date - baseDate;
-  let finalDate = Math.floor(diffMs / (1000 * 60 * 60 * 24 * 7));
+function epochWeeks(inputDate) {
+  const baseDate = new Date(Date.UTC(1970, 0, 4)); // force UTC
+  const date = inputDate instanceof Date
+    ? new Date(Date.UTC(
+        inputDate.getFullYear(),
+        inputDate.getMonth(),
+        inputDate.getDate()
+      ))
+    : new Date(inputDate + "T00:00:00Z"); // force UTC midnight
 
-  return finalDate
-};
+  const diffMs = date - baseDate;
+  return Math.floor(diffMs / (1000 * 60 * 60 * 24 * 7));
+}
 
 function getMetricsCacheKey(options = {}) {
   const parts = [];

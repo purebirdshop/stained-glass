@@ -223,3 +223,31 @@ export const fetchAllGroupsBySearch = async (options = {}) => {
   // setCache(cacheKey, jsonData);
   return jsonData;
 };
+
+export const fetchGroupPrticipants = async (options = {}) => {
+  const { id } = options;
+  // const cacheKey = getCcbCacheKey(options);
+  // const cached = getCache(cacheKey);
+  // if (cached) return cached;
+
+  const response = await axios.get(
+    `${process.env.CCB_API_URL}api.php?srv=group_participants`,
+    {
+      auth: {
+        username: process.env.CCB_USERNAME,
+        password: process.env.CCB_PASSWORD
+      },
+      headers: {
+        Accept: "application/xml"
+      },
+      params:{
+        srv: 'group_participants',
+        id: 23
+      }
+    }
+  );
+
+  const jsonData = campusListParser.parse(response.data);
+  // setCache(cacheKey, jsonData);
+  return jsonData;
+};

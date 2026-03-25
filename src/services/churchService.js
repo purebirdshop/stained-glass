@@ -2,7 +2,28 @@ import axios, { all } from "axios";
 import { getCache, setCache } from "./cacheService.js";
 import { calculateTotal, getMetricsCacheKey, epochWeeks } from "../utils/helpers.js";
 import categoryGroups from '../data/categoryGroups.js';
+import fs from 'fs';
+import { Console } from 'console';
+import { start } from "repl";
 
+const timestampMs = Date.now();
+
+// Create a write stream in append mode ('a') to a file named with timestamp
+const output = fs.createWriteStream(`./logs/output_${timestampMs}.txt`, { flags: 'a' });
+
+// Create a new Console instance that writes to the file stream
+const logger = new Console({ stdout: output, stderr: output });
+
+function categoryCleanUp(str) {
+  if (!str || typeof str !== 'string') return '';
+
+  const cleaned = str
+    .replace(/^Category\s+\d+\s*$/i, '')
+    .replace(/[^a-zA-Z0-9]/g, '')
+    .trim();
+
+  return cleaned.charAt(0).toLowerCase() + cleaned.slice(1);
+}
 
 let categoryIds = [];
 
@@ -144,10 +165,13 @@ export const getAllRecords = async (options = {}) => {
 };
 
 export const getAllRecordsByCampus = async (options = {}) => {
-  const cacheKey = getMetricsCacheKey(options);
-  const cached = getCache(cacheKey);
-  if (cached) return cached;
+const { campus_id, category_id } = options;
+    // const cacheKey = getMetricsCacheKey(options);
+  // const cached = getCache(cacheKey);
+  // if (cached) return cached;
 
+  console.log(`campus_id: ${ campus_id }`)
+    console.log(`category_id: ${ category_id }`)
   if (!campus_id) throw new Error("Campus ID is required.");
 
   // Calculate first and last day of the current month
@@ -168,16 +192,15 @@ export const getAllRecordsByCampus = async (options = {}) => {
           Accept: "application/json",
         },
         params: {
-          campus_id: campus_id,
-          start_date: firstDay,
-          end_date: lastDay,
+          category_id: category_id || 679252,
+          campus_id: campus_id || 66053,
         },
       }
     );
 
     const records = response.data || [];
 
-    setCache(cacheKey, records);
+    // setCache(cacheKey, records);
 
     return records;
   } catch (err) {
@@ -337,6 +360,8 @@ export const getAllRecordsByCampusByCategory = async (options = {}) => {
     const uniqueCategoryIds = new Set();
 
     if (records.length > 0) {
+      logger.log(`week_reference: ${week_reference}`)
+      logger.log(records)
       for (const record of records) {
         catName = record.category?.name || "";
         total += record.value || 0;
@@ -344,7 +369,14 @@ export const getAllRecordsByCampusByCategory = async (options = {}) => {
           uniqueCategoryIds.add(record.service_time_id);
         }
       }
-    }
+    } 
+    // else {
+    //   catName = record.category?.name || "";
+    //   total = 0;
+    //   if (record?.service_time_id) {
+    //     uniqueCategoryIds.add(record.service_time_id);
+    //   }
+    // }
 
     return {
       "sub-total": total,
@@ -365,6 +397,10 @@ export const getAllRecordsByCampusGrouped = async (options = {}) => {
   const { campus_id, start_date, end_date } = options;
   if (!campus_id) throw new Error("Campus ID is required.");
 
+
+  logger.log(`campus_id: ${campus_id}`)
+  logger.log(`start_date: ${start_date}`)
+  logger.log(`end_date: ${end_date}`)
   const groupedResults = {};
   const finalResult = {};
   let allRecords;
@@ -396,6 +432,7 @@ export const getAllRecordsByCampusGrouped = async (options = {}) => {
     const groupCategoryIds = new Set();
 
     // Fetch all categories in parallel
+    let lookup = "";
     const categoryPromises = categoryIds.map(async (category_id) => {
       // Loop through each week reference to aggregate monthly totals
       let monthlyTotal = 0;
@@ -408,16 +445,19 @@ export const getAllRecordsByCampusGrouped = async (options = {}) => {
           category_id,
           week_reference: weekRef,
         });
-
+        
         if (records) {
           monthlyTotal += records["sub-total"] || 0;
           catName = records.name;
           services += records.services || 0;
         }
+        logger.log(`weekRef: ${weekRef}`)
+        logger.log(records)
       }
 
       return {
         category_id,
+        // "lookup": lookupName,
         records: {
           "sub-total": monthlyTotal,
           name: catName,
@@ -430,6 +470,7 @@ export const getAllRecordsByCampusGrouped = async (options = {}) => {
 
     results.forEach(({ category_id, records }) => {
       allRecords = results;
+      lookup= categoryCleanUp(records.name) || category_id;
       groupedResults[groupName][category_id] = records;
       groupTotal += records["sub-total"] || 0;
     });
@@ -439,7 +480,10 @@ export const getAllRecordsByCampusGrouped = async (options = {}) => {
 
     finalResult[groupName] = {
       allRecords,
+      lookup,
+      // TODO: this is where lookup needs
       total: categoryTotal,
+      groupTotal
     };
 
     overallTotal = subTotal;

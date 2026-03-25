@@ -59,26 +59,29 @@ router.get("/all-records", async (req, res) => {
   }
 });
 
+
 router.get("/all-records-by-campus", async (req, res) => {
   try {
     const { campus_id } = req.query;
-
     if (!campus_id) {
       return res.status(400).json({ error: "Missing 'campus_id' query param" });
     }
 
-    // 5️⃣ Fetch records for the given month / date and service_time_ids
-    const recordsData = await getAllRecordsByCampus({
-      campus_id
+    // 5️⃣ Fetch records for the given month / date range
+    const records = await getAllRecordsByCampus({
+      campus_id,
     });
 
-    // 6️⃣ Return service times and filtered records
-    return res.json({
-      records: recordsData
-    });
+    // 6️⃣ Return records
+    return res.json({ records });
   } catch (err) {
-    console.error("[ metrics.js ] | Error fetching filtered records:", err.message);
-    return res.status(500).json({ error: "[ metrics.js ] | Failed to fetch filtered records" });
+    console.error(
+      "[ metrics.js ] | Error fetching filtered records:",
+      err.message
+    );
+    return res
+      .status(500)
+      .json({ error: "[ metrics.js ] | Failed to fetch filtered records" });
   }
 });
 
@@ -458,6 +461,17 @@ router.get("/ccb-group-by-search", async (req, res) => {
   }
 });
 
+// https://yourchurch.ccbchurch.com/api.php?srv=group_participants&id=23
+router.get("/ccb-campus-list", async (req, res) => {
+  try {
+    // 5️⃣ Fetch records from CCB's API
+    const recordsData = await fetchGroupPrticipants();
 
+    return res.json(recordsData);
+  } catch (err) {
+    console.error("[ metrics.js ] | Error fetching records from CCB's API:", err.message);
+    return res.status(500).json({ error: "[ metrics.js ] | Failed to fetch records from CCB Data." });
+  }
+});
 
 export default router;
