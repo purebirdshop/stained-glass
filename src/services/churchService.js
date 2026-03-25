@@ -2,17 +2,6 @@ import axios, { all } from "axios";
 import { getCache, setCache } from "./cacheService.js";
 import { calculateTotal, getMetricsCacheKey, epochWeeks } from "../utils/helpers.js";
 import categoryGroups from '../data/categoryGroups.js';
-import fs from 'fs';
-import { Console } from 'console';
-import { start } from "repl";
-
-const timestampMs = Date.now();
-
-// Create a write stream in append mode ('a') to a file named with timestamp
-const output = fs.createWriteStream(`./logs/output_${timestampMs}.txt`, { flags: 'a' });
-
-// Create a new Console instance that writes to the file stream
-const logger = new Console({ stdout: output, stderr: output });
 
 function categoryCleanUp(str) {
   if (!str || typeof str !== 'string') return '';
@@ -360,8 +349,6 @@ export const getAllRecordsByCampusByCategory = async (options = {}) => {
     const uniqueCategoryIds = new Set();
 
     if (records.length > 0) {
-      logger.log(`week_reference: ${week_reference}`)
-      logger.log(records)
       for (const record of records) {
         catName = record.category?.name || "";
         total += record.value || 0;
@@ -398,9 +385,6 @@ export const getAllRecordsByCampusGrouped = async (options = {}) => {
   if (!campus_id) throw new Error("Campus ID is required.");
 
 
-  logger.log(`campus_id: ${campus_id}`)
-  logger.log(`start_date: ${start_date}`)
-  logger.log(`end_date: ${end_date}`)
   const groupedResults = {};
   const finalResult = {};
   let allRecords;
@@ -451,8 +435,6 @@ export const getAllRecordsByCampusGrouped = async (options = {}) => {
           catName = records.name;
           services += records.services || 0;
         }
-        logger.log(`weekRef: ${weekRef}`)
-        logger.log(records)
       }
 
       return {
